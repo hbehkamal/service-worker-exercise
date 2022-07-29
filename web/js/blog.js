@@ -31,7 +31,7 @@
 		});
 	}
 
-	const initServiceWorker = async () => {
+	async function initServiceWorker() {
 		swRegistration = await navigator.serviceWorker.register("/sw.js", {
 			updateViaCache: "none",
 		});
