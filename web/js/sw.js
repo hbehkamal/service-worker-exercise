@@ -4,9 +4,10 @@ const version = 3; // All resources are an atomic package which might get update
 
 var isOnline = true;
 var isLoggedIn = false;
-
+// 1.0
 var cacheName = `cache-v${version}`
 
+// 1.1 list the URLs we want to cache
 var urlsToCache = {
   loggoutOut: [
     "/",
@@ -39,6 +40,8 @@ main().catch(console.error());
 
 async function main() {
   await sendMessage({ requestStatusUpdate: true })
+  // 2.0 cache URLs even unless they are already cached
+  await cacheLoggedOutFiles();
 }
 
 async function onInstall(evt) {
@@ -68,12 +71,53 @@ function onMessage({ data }) {
 }
 
 async function handleActivation() {
-  // Firing the controller. clients means all tabs;
   await clients.claim();
+
+  // 2.1 cache URLs even if they are already cached
+  await cacheLoggedOutFiles(true);
   console.log(`Service Worker version ${version} activated`);
 }
 
 function onActivate(evt) {
   // Since brwoser might shut down SW, we have to say to NOT until we want!
   evt.waitUntil(handleActivation());
+}
+// 1.2 cache defined URLs
+async function cacheLoggedOutFiles(forceReload = false) {
+  // create a cache with a name
+  var cache = await caches.open(cacheName);
+
+  return Promise.all(
+    urlsToCache.loggoutOut.map(async function requestFile(url) {
+      try {
+        let result;
+
+        if (!forceReload) {
+          // 1.3 Get data from cache if available and not forced to reload
+          result = await cache.match(url);
+          if (result) {
+            return result;
+          }
+
+          // 1.4 define request options
+          const fetchOptions = {
+            method: "GET",
+            cache: "no-cache", // Do not use browser cache
+            credentials: "omit" // Do not send cookies
+          }
+
+          result = await fetch(url, fetchOptions);
+          if (result.ok) {
+            // 1.5 put the result to our own controlled cache
+            await cache.put(url, result);
+          }
+
+        }
+
+
+      } catch (error) {
+        console.log('error: ', error);
+      }
+    })
+  )
 }
