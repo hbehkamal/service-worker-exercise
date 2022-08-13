@@ -2,10 +2,31 @@
 
 // This file's codes are going to run at installation and at restarting (inactive bg tab becomes foreground) state of SW life cycle
 
-const version = 2; // All resources are an atomic package which might get updated
+const version = 3; // All resources are an atomic package which might get updated
 
 var isOnline = true;
 var isLoggedIn = false;
+
+var cacheName = `cache-v${version}`
+
+var urlsToCache = {
+  loggoutOut: [
+    "/",
+    "/about",
+    "/contact",
+    "/login",
+    "/404",
+    "/offline",
+    "/js/add-post.js",
+    "/js/blog.js",
+    "/js/home.js",
+    "/js/login.js",
+    "/css/style.css",
+    "/images/logo.gif",
+    "/images/offline.png",
+
+  ]
+}
 
 self.addEventListener("install", onInstall);
 self.addEventListener("activate", onActivate);
