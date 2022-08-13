@@ -1,6 +1,6 @@
 "use strict";
 
-const version = 3; // All resources are an atomic package which might get updated
+const version = 4; // All resources are an atomic package which might get updated
 
 var isOnline = true;
 var isLoggedIn = false;
@@ -71,10 +71,12 @@ function onMessage({ data }) {
 }
 
 async function handleActivation() {
-  await clients.claim();
-
+  // 3 clear caches from last service worker
+  await clearCaches();
   // 2.1 cache URLs even if they are already cached
   await cacheLoggedOutFiles(true);
+  await clients.claim();
+
   console.log(`Service Worker version ${version} activated`);
 }
 
@@ -119,5 +121,24 @@ async function cacheLoggedOutFiles(forceReload = false) {
         console.log('error: ', error);
       }
     })
+  )
+}
+
+async function clearCaches() {
+  // 3.1 get all cache names
+  var cacheNames = await caches.keys();
+  // 3.2 which of these names are old caches?
+  var oldCacheNames = cacheNames.filter((name) => {
+    if (/^cache-v\d+$/.test(name)) {
+      let [, cacheVersion] = name.match(/^cache-v(\d+)$/);
+      cacheVersion = (cacheVersion != null) ? Number(cacheVersion) : cacheVersion
+      return (cacheVersion > 0 && cacheVersion != version)
+    }
+  });
+
+  // 3.3 delete from cache storage one by one
+  return Promise.all(
+    oldCacheNames.map((name) => caches.delete(name)
+    )
   )
 }
