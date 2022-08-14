@@ -1,6 +1,6 @@
 "use strict";
 
-const version = 4; // All resources are an atomic package which might get updated
+const version = 5; // All resources are an atomic package which might get updated
 
 var isOnline = true;
 var isLoggedIn = false;
@@ -28,6 +28,8 @@ var urlsToCache = {
 self.addEventListener("install", onInstall);
 self.addEventListener("activate", onActivate);
 self.addEventListener("message", onMessage);
+// 1.0
+self.addEventListener("fetch", onFetch);
 
 // ********************************************
 
@@ -127,4 +129,54 @@ async function clearCaches() {
     oldCacheNames.map((name) => caches.delete(name)
     )
   )
+}
+
+function onFetch(evt) {
+  const { request } = evt;
+
+  // 1.1 wait until get a response
+  evt.respondWith(router(request))
+}
+
+// 1.2
+async function router(req) {
+  var url = new URL(req.url);
+  var reqUrl = url.pathname;
+  var cache = await caches.open(cacheName);
+
+  // 1.3 to prevent CORS
+  if (url.origin == location.origin) {
+    let res;
+    try {
+      const fetchOptions = {
+        method: req.method,
+        headers: req.headers,
+        cache: "no-store",
+        credentials: "omit"
+      }
+
+      // 1.4 The startegy: 
+      //      - make the request
+      //      - store the response into cache 
+      //      - If didn't get the response (e.g. because of being offline), use cache
+      res = await fetch(req.url, fetchOptions);
+      if (res && res.ok) {
+        // 1.4 cache the response
+        await cache.put(reqUrl, res.clone());
+        // 1.4 return the response for evt.respondWith
+        return res;
+      }
+    } catch (error) {
+      console.log('error: ', error);
+    }
+
+    // 1.5 check our cache if it didn't get a response from server (for any reason e.g. we are offline)
+    res = await cache.match(reqUrl);
+
+    if (res) {
+      return res.clone()
+    }
+  }
+
+  // TODO: figure out CORS requests
 }
