@@ -58,13 +58,14 @@
 		if (data.requestStatusUpdate) {
 			// hey page! can u give me an update?
 			console.log("Received status update request from service worker, responding");
-			// port between page and sw
+
 			sendStatusUpdate(evt.ports && evt.ports[0]);
 		}
 	}
 
 	function sendStatusUpdate(target) {
-		sendSWMessage({ statusUpdate: { isOnline, isLoggedIn } }, target)
+		const msg = { statusUpdate: { isOnline, isLoggedIn } };
+		sendSWMessage(msg, target)
 	}
 
 	function sendSWMessage(msg, target) {
